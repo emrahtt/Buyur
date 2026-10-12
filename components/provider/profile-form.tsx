@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { formatTLRange } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 type CategoryOption = {
   slug: string
@@ -54,6 +55,7 @@ export function ProviderProfileForm({
   const [services, setServices] = useState<Record<string, ServiceDraft>>(initial.services)
   const [regionIds, setRegionIds] = useState<Set<number>>(new Set(initial.regionIds))
   const [terms, setTerms] = useState(!isNew)
+  const [termsError, setTermsError] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [avatarVersion, setAvatarVersion] = useState(0)
   const [hasAvatar, setHasAvatar] = useState(initial.hasAvatar)
@@ -68,6 +70,12 @@ export function ProviderProfileForm({
   }
 
   function submit() {
+    if (isNew && !terms) {
+      setTermsError(true)
+      document.getElementById('terms')?.focus()
+      document.getElementById('terms')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
     const input: ProviderProfileInput = {
       displayName,
       bio,
@@ -330,8 +338,24 @@ export function ProviderProfileForm({
       </section>
 
       {isNew ? (
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-card p-4">
-          <Checkbox checked={terms} onCheckedChange={(checked) => setTerms(checked === true)} className="mt-0.5 size-5" />
+        <div className="flex flex-col gap-2">
+        <label
+          className={cn(
+            'flex cursor-pointer items-start gap-3 rounded-xl border bg-card p-4',
+            termsError && 'border-destructive',
+          )}
+        >
+          <Checkbox
+            id="terms"
+            checked={terms}
+            onCheckedChange={(checked) => {
+              setTerms(checked === true)
+              if (checked === true) setTermsError(false)
+            }}
+            aria-invalid={termsError || undefined}
+            aria-describedby={termsError ? 'terms-error' : undefined}
+            className="mt-0.5 size-5"
+          />
           <span className="text-sm leading-relaxed">
             <Link href="/kosullar" target="_blank" className="font-medium text-primary underline underline-offset-4">
               Hizmet veren koşullarını
@@ -343,10 +367,16 @@ export function ProviderProfileForm({
             ’ni okudum. Müşteri bilgilerini yalnızca ilgili iş için kullanacağımı kabul ediyorum.
           </span>
         </label>
+        {termsError ? (
+          <p id="terms-error" role="alert" className="text-sm text-destructive">
+            Devam etmek için koşulları onaylaman gerekiyor.
+          </p>
+        ) : null}
+        </div>
       ) : null}
 
       <div className="sticky bottom-0 -mx-4 border-t bg-background/95 px-4 pt-3 backdrop-blur pb-safe">
-        <Button type="submit" size="lg" className="w-full" disabled={pending || (isNew && !terms)}>
+        <Button type="submit" size="lg" className="w-full" disabled={pending}>
           {pending ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
           {isNew ? 'Profilimi oluştur' : 'Kaydet'}
         </Button>

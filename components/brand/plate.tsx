@@ -17,7 +17,7 @@ export function Plate({ overline, children, className, size = 'md', as: Tag = 'd
   return (
     <Tag
       className={cn(
-        'inline-flex rounded-xl bg-plate text-plate-foreground shadow-[0_1px_0_0_oklch(1_0_0/0.25)_inset,0_8px_24px_-12px_oklch(0.3_0.15_261/0.6)]',
+        'inline-flex w-fit rounded-xl bg-plate text-plate-foreground shadow-[0_1px_0_0_oklch(1_0_0/0.25)_inset,0_8px_24px_-12px_oklch(0.3_0.15_261/0.6)]',
         size === 'sm' && 'rounded-md p-0.5',
         size === 'md' && 'p-1',
         size === 'lg' && 'rounded-2xl p-1.5',

@@ -1,15 +1,12 @@
-const tl = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY',
-  maximumFractionDigits: 0,
-})
+// Neither brand font ships the ₺ glyph, so prices use the "TL" suffix to render everywhere.
+const amount = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 })
 
 export function formatTL(value: number) {
-  return tl.format(value)
+  return `${amount.format(value)} TL`
 }
 
 export function formatTLRange(min: number, max: number) {
-  return `${tl.format(min)} – ${tl.format(max)}`
+  return `${amount.format(min)} – ${amount.format(max)} TL`
 }
 
 /** Normalises Turkish mobile numbers to 90XXXXXXXXXX, or null when invalid. */
