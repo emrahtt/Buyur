@@ -176,6 +176,8 @@ export const offers = pgTable('offers', {
 export const messages = pgTable('messages', {
   id: serial('id').primaryKey(),
   requestId: text('request_id').notNull(),
+  /** Each customer–provider conversation is its own thread. */
+  providerId: text('provider_id'),
   senderType: text('sender_type').$type<'customer' | 'provider' | 'admin'>().notNull(),
   senderId: text('sender_id'),
   body: text('body').notNull(),
