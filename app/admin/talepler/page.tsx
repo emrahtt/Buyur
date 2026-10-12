@@ -17,7 +17,7 @@ import {
 import { displayPhone, formatDate, formatTL, timeAgo, whatsappLink } from '@/lib/format'
 import { tr } from '@/lib/i18n/tr'
 import { getCategory, getPackage } from '@/lib/modules'
-import { requireAdmin } from '@/lib/session'
+import { requireStaff } from '@/lib/session'
 import { cn } from '@/lib/utils'
 
 const FILTERS: { id: RequestStatus | 'all'; label: string }[] = [
@@ -29,7 +29,7 @@ const FILTERS: { id: RequestStatus | 'all'; label: string }[] = [
 ]
 
 export default async function AdminRequestsPage({ searchParams }: { searchParams: Promise<{ durum?: string }> }) {
-  await requireAdmin()
+  await requireStaff()
   const { durum } = await searchParams
   const filter = FILTERS.find((f) => f.id === durum)?.id ?? 'open'
 

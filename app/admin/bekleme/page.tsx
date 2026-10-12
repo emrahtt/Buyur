@@ -3,10 +3,10 @@ import { db } from '@/lib/db'
 import { regions, waitlist } from '@/lib/db/schema'
 import { displayPhone, formatShortDate } from '@/lib/format'
 import { UPCOMING_MODULES } from '@/lib/modules'
-import { requireAdmin } from '@/lib/session'
+import { requireStaff } from '@/lib/session'
 
 export default async function AdminWaitlistPage() {
-  await requireAdmin()
+  await requireStaff()
   const rows = await db
     .select({ entry: waitlist, regionName: regions.name })
     .from(waitlist)

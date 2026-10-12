@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { pool } from '@/lib/db'
+import { normalizePhone } from '@/lib/format'
 import { isAdminEmail } from '@/lib/roles'
 
 export const auth = betterAuth({
@@ -25,9 +26,16 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        before: async (user) => ({
-          data: { ...user, role: isAdminEmail(user.email) ? 'admin' : 'customer' },
-        }),
+        before: async (user) => {
+          const rawPhone = typeof user.phone === 'string' ? user.phone : ''
+          return {
+            data: {
+              ...user,
+              phone: rawPhone ? normalizePhone(rawPhone) : null,
+              role: isAdminEmail(user.email) ? 'admin' : 'customer',
+            },
+          }
+        },
       },
     },
   },

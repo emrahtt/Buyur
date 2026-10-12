@@ -1,13 +1,15 @@
 'use server'
 
 import { del } from '@vercel/blob'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, like } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import {
+  session as authSession,
   messages,
+  notifications,
   offers,
   providerProfiles,
   providerRegions,
@@ -15,12 +17,14 @@ import {
   regions,
   requests,
   reviews,
+  user,
   type VerificationChecklist,
 } from '@/lib/db/schema'
+import { DEMO_EMAIL_DOMAIN, isAdminEmail } from '@/lib/roles'
 import { tr } from '@/lib/i18n/tr'
 import { recomputeProviderRating } from '@/lib/ratings'
 import { notifyUser } from '@/lib/request-lifecycle'
-import { currentAdmin } from '@/lib/session'
+import { currentAdmin, currentStaff } from '@/lib/session'
 
 type Result = { ok: true } | { ok: false; error: string }
 
@@ -31,7 +35,7 @@ export async function setProviderStatus(
   providerId: string,
   status: 'pending' | 'approved' | 'rejected',
 ): Promise<Result> {
-  if (!(await currentAdmin())) return DENIED
+  if (!(await currentStaff())) return DENIED
   if (!['pending', 'approved', 'rejected'].includes(status)) return { ok: false, error: tr.errors.generic }
   const [updated] = await db
     .update(providerProfiles)
@@ -54,7 +58,7 @@ export async function setChecklistItem(
   key: (typeof CHECKLIST_KEYS)[number],
   value: boolean,
 ): Promise<Result> {
-  if (!(await currentAdmin())) return DENIED
+  if (!(await currentStaff())) return DENIED
   if (!CHECKLIST_KEYS.includes(key)) return { ok: false, error: tr.errors.generic }
   const [profile] = await db
     .select({ checklist: providerProfiles.verificationChecklist })
@@ -81,7 +85,7 @@ const matchSchema = z.object({
 
 /** Records an offer on behalf of a provider (e.g. one agreed by phone). Shown to the customer as a Buyur match. */
 export async function adminMatch(input: z.input<typeof matchSchema>): Promise<Result> {
-  if (!(await currentAdmin())) return DENIED
+  if (!(await currentStaff())) return DENIED
   const parsed = matchSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: 'Ekip ve fiyatı kontrol et.' }
   const { requestId, providerId, price, message } = parsed.data
@@ -113,7 +117,7 @@ export async function adminMatch(input: z.input<typeof matchSchema>): Promise<Re
 }
 
 export async function setReviewStatus(reviewId: string, status: 'published' | 'hidden'): Promise<Result> {
-  if (!(await currentAdmin())) return DENIED
+  if (!(await currentStaff())) return DENIED
   const [review] = await db
     .update(reviews)
     .set({ status: status === 'hidden' ? 'hidden' : 'published' })
@@ -131,9 +135,46 @@ export async function setRegionActive(regionId: number, active: boolean): Promis
   return { ok: true }
 }
 
+const roleSchema = z.object({
+  userId: z.string().min(1),
+  staffRole: z.enum(['none', 'supervisor', 'admin']),
+})
+
+/** Grants or removes staff access. Non-staff users fall back to provider or customer based on their profile. */
+export async function setUserRole(input: z.input<typeof roleSchema>): Promise<Result> {
+  const session = await currentAdmin()
+  if (!session) return DENIED
+  const parsed = roleSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: tr.errors.generic }
+  const { userId, staffRole } = parsed.data
+  if (userId === session.user.id) return { ok: false, error: 'Kendi rolünü değiştiremezsin.' }
+
+  const [target] = await db.select({ email: user.email }).from(user).where(eq(user.id, userId)).limit(1)
+  if (!target) return { ok: false, error: 'Kullanıcı bulunamadı.' }
+  if (isAdminEmail(target.email) && staffRole !== 'admin') {
+    return { ok: false, error: 'Bu hesap ADMIN_EMAILS ile yönetici; rolü buradan düşürülemez.' }
+  }
+
+  let role: string = staffRole
+  if (staffRole === 'none') {
+    const [profile] = await db
+      .select({ id: providerProfiles.id })
+      .from(providerProfiles)
+      .where(eq(providerProfiles.userId, userId))
+      .limit(1)
+    role = profile ? 'provider' : 'customer'
+  }
+  await db.update(user).set({ role, updatedAt: new Date() }).where(eq(user.id, userId))
+  // Ending existing sessions makes the new permissions apply immediately.
+  await db.delete(authSession).where(eq(authSession.userId, userId))
+  revalidatePath('/admin/kullanicilar')
+  return { ok: true }
+}
+
 /** Removes every seeded demo provider together with the offers, reviews and messages tied to them. */
 export async function deleteDemoData(): Promise<Result> {
-  if (!(await currentAdmin())) return DENIED
+  const session = await currentAdmin()
+  if (!session) return DENIED
   const demo = await db
     .select({ id: providerProfiles.id, avatar: providerProfiles.avatarPathname })
     .from(providerProfiles)
@@ -156,6 +197,16 @@ export async function deleteDemoData(): Promise<Result> {
       await tx.delete(messages).where(inArray(messages.requestId, requestIds))
       await tx.delete(offers).where(inArray(offers.requestId, requestIds))
       await tx.delete(requests).where(inArray(requests.id, requestIds))
+    }
+    // Sessions and accounts cascade with the user row.
+    const demoUsers = await tx
+      .select({ id: user.id })
+      .from(user)
+      .where(like(user.email, `%@${DEMO_EMAIL_DOMAIN}`))
+    const demoUserIds = demoUsers.map((u) => u.id).filter((id) => id !== session.user.id)
+    if (demoUserIds.length > 0) {
+      await tx.delete(notifications).where(inArray(notifications.userId, demoUserIds))
+      await tx.delete(user).where(inArray(user.id, demoUserIds))
     }
   })
   const avatars = demo.flatMap((d) => (d.avatar ? [d.avatar] : []))

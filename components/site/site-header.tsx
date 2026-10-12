@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Wordmark } from '@/components/brand/plate'
 import { buttonVariants } from '@/components/ui/button'
 import { tr } from '@/lib/i18n/tr'
-import { isAdmin } from '@/lib/roles'
+import { isStaff } from '@/lib/roles'
 import { getProviderForUser, getSession } from '@/lib/session'
 import { cn } from '@/lib/utils'
 import { MobileMenu, type MenuLink } from './mobile-menu'
@@ -20,7 +20,7 @@ export async function SiteHeader() {
   if (user) {
     links.push({ href: '/panel', label: tr.nav.panel })
     if (provider) links.push({ href: '/veren', label: tr.nav.providerPanel })
-    if (isAdmin(user)) links.push({ href: '/admin', label: tr.nav.admin })
+    if (isStaff(user)) links.push({ href: '/admin', label: tr.nav.admin })
   }
 
   return (

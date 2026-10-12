@@ -22,7 +22,7 @@ import { CONSENT_VERSION, tr } from '@/lib/i18n/tr'
 import { activeCategoryPairs } from '@/lib/modules'
 import { providerCanSeeRequest, providerServesRequest } from '@/lib/provider-access'
 import { markCompleted, notifyUser } from '@/lib/request-lifecycle'
-import { isAdmin } from '@/lib/roles'
+import { isStaff } from '@/lib/roles'
 import { currentApprovedProvider, getProviderForUser, getSession } from '@/lib/session'
 
 type Result = { ok: true } | { ok: false; error: string }
@@ -111,7 +111,7 @@ export async function saveProviderProfile(input: ProviderProfileInput): Promise<
         phone,
         whatsapp,
       })
-      if (!isAdmin(session.user)) {
+      if (!isStaff(session.user)) {
         await tx.update(user).set({ role: 'provider' }).where(eq(user.id, session.user.id))
       }
       await tx.insert(consents).values({

@@ -11,7 +11,7 @@ import { tr } from '@/lib/i18n/tr'
 import { getCategory, getPackage } from '@/lib/modules'
 import { getProviderBySlug, shortName } from '@/lib/queries'
 import { buildRequestUrl } from '@/lib/request-url'
-import { currentAdmin, getSession } from '@/lib/session'
+import { currentStaff, getSession } from '@/lib/session'
 import { cn } from '@/lib/utils'
 
 type Params = Promise<{ slug: string }>
@@ -36,7 +36,7 @@ export default async function ProviderProfilePage({ params }: { params: Params }
   if (profile.verificationStatus !== 'approved') {
     const session = await getSession()
     const isOwner = session?.user.id === profile.userId
-    if (!isOwner && !(await currentAdmin())) notFound()
+    if (!isOwner && !(await currentStaff())) notFound()
   }
 
   const checklist = profile.verificationChecklist ?? {}

@@ -16,7 +16,8 @@ export function DemoDataCard({ count }: { count: number }) {
     <section className="flex flex-col gap-3 rounded-xl border border-dashed p-4">
       <h2 className="font-heading text-lg font-semibold">Demo verileri</h2>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Sitede {count} örnek hizmet veren ve yorumları yayında. Gerçek ekipler katılınca tek tıkla kaldır.
+        Sitede {count} örnek hizmet veren, örnek talepler ve @demo.buyur.app test hesapları var. Gerçek ekipler
+        katılınca hepsini tek tıkla kaldır.
       </p>
       {confirming ? (
         <div className="flex flex-wrap items-center gap-2">

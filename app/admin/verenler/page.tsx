@@ -4,7 +4,7 @@ import { ProviderReviewCard } from '@/components/admin/provider-review-card'
 import { db } from '@/lib/db'
 import { providerProfiles, providerRegions, providerServices, user } from '@/lib/db/schema'
 import { getCategory } from '@/lib/modules'
-import { requireAdmin } from '@/lib/session'
+import { requireStaff } from '@/lib/session'
 import { cn } from '@/lib/utils'
 
 const FILTERS = [
@@ -15,7 +15,7 @@ const FILTERS = [
 ]
 
 export default async function AdminProvidersPage({ searchParams }: { searchParams: Promise<{ durum?: string }> }) {
-  await requireAdmin()
+  await requireStaff()
   const { durum } = await searchParams
   const filter = FILTERS.some((f) => f.id === durum) ? durum! : 'pending'
 

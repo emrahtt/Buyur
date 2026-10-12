@@ -5,7 +5,8 @@ import { db } from '@/lib/db'
 import { providerProfiles } from '@/lib/db/schema'
 import { getCategoryBreakdown, getDailyRequests, getKpis, getWaitlistSummary } from '@/lib/admin-queries'
 import { getCategory, getModule } from '@/lib/modules'
-import { requireAdmin } from '@/lib/session'
+import { isAdmin } from '@/lib/roles'
+import { requireStaff } from '@/lib/session'
 import { eq, count } from 'drizzle-orm'
 
 function Kpi({ label, value, hint, href }: { label: string; value: string; hint?: string; href?: string }) {
@@ -33,7 +34,8 @@ function formatMinutes(min: number | null) {
 }
 
 export default async function AdminOverviewPage() {
-  await requireAdmin()
+  const session = await requireStaff()
+  const canManageDemo = isAdmin(session.user)
   const [kpis, daily, categories, waitlist, [demo]] = await Promise.all([
     getKpis(),
     getDailyRequests(14),
@@ -117,7 +119,7 @@ export default async function AdminOverviewPage() {
         </section>
       </div>
 
-      {demo.n > 0 ? <DemoDataCard count={demo.n} /> : null}
+      {canManageDemo && demo.n > 0 ? <DemoDataCard count={demo.n} /> : null}
     </div>
   )
 }

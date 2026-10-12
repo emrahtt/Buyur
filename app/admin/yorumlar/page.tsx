@@ -4,11 +4,11 @@ import { Stars } from '@/components/trust'
 import { db } from '@/lib/db'
 import { providerProfiles, requests, reviews } from '@/lib/db/schema'
 import { formatShortDate } from '@/lib/format'
-import { requireAdmin } from '@/lib/session'
+import { requireStaff } from '@/lib/session'
 import { cn } from '@/lib/utils'
 
 export default async function AdminReviewsPage() {
-  await requireAdmin()
+  await requireStaff()
   const rows = await db
     .select({ review: reviews, providerName: providerProfiles.displayName, contactName: requests.contactName })
     .from(reviews)
