@@ -59,7 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       suppressHydrationWarning
       className={`${bricolage.variable} ${figtree.variable} bg-background`}
     >
-      <body className="flex min-h-dvh flex-col font-sans antialiased">
+      <body suppressHydrationWarning className="flex min-h-dvh flex-col font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
           <CookieNotice />
